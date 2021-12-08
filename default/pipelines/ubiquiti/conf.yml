@@ -1,0 +1,272 @@
+output: default
+groups:
+  YptLOm:
+    name: Extract fields based on pre-defined regex found in ubiquiti_matches lookup
+      file
+    index: 12
+  hsgCbr:
+    name: Re-build _raw based on what type of log we have
+    index: 13
+    description: Note the final flags. We stop processing after we match one of these rules
+asyncFuncTimeout: 1000
+functions:
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Move message to _raw if it's there, drop message; set _punct
+  - id: eval
+    filter: message
+    disabled: null
+    conf:
+      add:
+        - name: punct
+          value: message.replace(/[0-9a-zA-Z\s]+/g,'')
+        - name: _raw
+          value: message
+        - name: message
+          value: undefined
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Grab some base values unless they're already done
+  - id: regex_extract
+    filter: "!ub_mac"
+    disabled: false
+    conf:
+      source: _raw
+      iterations: 100
+      overwrite: false
+      regex: /(?<ub_mac>[a-f0-9]+),(?<ub_version>\S+):?\s(?::\s)?(?<ub_appname>[-a-zA-Z0-9_/]+)/
+  - id: eval
+    filter: "!ub_mac"
+    disabled: null
+    conf:
+      add:
+        - name: ub_group_type
+          value: "'failed extract'"
+    description: event was not what we expected
+    final: true
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Fix time if needed
+  - id: eval
+    filter: "true"
+    disabled: false
+    conf:
+      add:
+        - name: __time_adj_sec
+          value: Number(Date.now())/1000 - _time
+        - name: time_adj_hr
+          value: Math.round(__time_adj_sec/3600)
+        - name: _time
+          value: "Math.abs(__time_adj_sec) < 3500 ? _time : _time + (time_adj_hr  *
+            3600)"
+        - name: time_adj_hr
+          value: "time_adj_hr == 0 ? undefined : time_adj_hr"
+    description: get time diff in seconds, get time diff in whole hour, set time if
+      absolute(seconds) diff is greater than 3500
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Suppress some chatty data
+  - id: suppress
+    filter: C.Lookup('ubiquiti_suppress.csv','appname').match(ub_appname)
+    disabled: null
+    conf:
+      allow: 1
+      suppressPeriodSec: 30
+      dropEventsMode: true
+      maxCacheSize: 50000
+      cacheIdleTimeoutPeriods: 2
+      numEventsIdleTimeoutTrigger: 10000
+      keyExpr: _raw.replace(/[a-zA-Z0-9\s]+/g,"_")
+    description: If the appname is in the lookup file, create a "punct" key and only allow
+      1/30 seconds through
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Set base fields, including hostname lookup if required
+  - id: eval
+    filter: "true"
+    disabled: null
+    conf:
+      add:
+        - name: index
+          value: C.vars.ub_index
+        - name: source
+          value: "'syslog'"
+        - name: sourcetype
+          value: "`syslog:ubiquiti:${ub_appname || 'undefined'}`"
+        - name: host
+          value: "host.match(/^\\d+\\./) ?
+            C.Lookup('ubiquiti_hosts.csv','ip').match(host,'host') : host"
+      remove:
+        - facility*
+        - severity*
+    description: Set source/-type, and host if it's an IP and it's in the ubiquiti_hosts
+      lookup file; drop the severity and facility fields
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: The grunt work (see group descriptions)
+  - id: lookup
+    filter: ub_appname
+    disabled: null
+    conf:
+      matchMode: exact
+      reloadPeriodSec: 60
+      addToEvent: false
+      inFields:
+        - eventField: ub_appname
+          lookupField: appname
+      ignoreCase: false
+      file: ubiquiti_matches.csv
+      outFields:
+        - lookupField: match
+          eventField: __match
+    groupId: YptLOm
+  - id: eval
+    filter: __match
+    disabled: null
+    conf:
+      add:
+        - name: __group
+          value: _raw.match(__match).groups
+      remove: []
+    groupId: YptLOm
+  - id: eval
+    filter: appname === ub_appname
+    disabled: null
+    conf:
+      add:
+        - name: appname
+          value: undefined
+    description: If these are the same, drop appname
+    groupId: hsgCbr
+  - id: eval
+    filter: __group.msg_json
+    disabled: null
+    conf:
+      add:
+        - name: _raw
+          value: JSON.parse(__group.msg_json)
+        - name: ub_group_type
+          value: "'json'"
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
+    final: true
+    groupId: hsgCbr
+  - id: serde
+    filter: __group.msg_kv
+    disabled: null
+    conf:
+      mode: extract
+      type: kvp
+      srcField: __group.msg_kv
+      cleanFields: false
+      dstField: _raw
+      keep: []
+      remove: []
+    final: false
+    groupId: hsgCbr
+  - id: eval
+    filter: __group.msg_kv
+    disabled: null
+    conf:
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
+      add:
+        - name: ub_group_type
+          value: "'kv'"
+    groupId: hsgCbr
+    final: true
+  - id: eval
+    filter: __group.msg || __group.msg2
+    disabled: null
+    conf:
+      add:
+        - name: _raw
+          value: __group.msg || __group.msg2
+        - name: ub_group_type
+          value: "'msg'"
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
+    final: true
+    groupId: hsgCbr
+  - id: eval
+    filter: __group
+    disabled: null
+    conf:
+      add:
+        - name: _raw
+          value: __group
+        - name: ub_group_type
+          value: "'match'"
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
+    groupId: hsgCbr
+    final: true
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Last resort. Minimal clean-up and pass it along
+    groupId: hsgCbr
+  - id: eval
+    filter: "true"
+    disabled: null
+    conf:
+      add:
+        - name: _raw
+          value: _raw.replace(/^[a-f0-9]{12},\S+:\s/,'')
+        - name: ub_group_type
+          value: "'nil'"
+    groupId: hsgCbr
+    description: Last resort, just clean it up and pass it along
