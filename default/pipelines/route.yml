@@ -5,8 +5,11 @@ routes:
     name: default
     final: true
     disabled: false
-    pipeline: ubiquiti
+    pipeline: unifi-cleanup
     description: ""
     clones: []
+    enableOutputExpression: false
+    outputExpression: null
     filter: "true"
     output: default
+comments: []

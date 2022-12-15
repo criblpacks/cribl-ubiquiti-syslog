@@ -31,7 +31,7 @@ functions:
     conf:
       comment: Suppress some chatty data
   - id: suppress
-    filter: C.Lookup('ubiquiti_suppress.csv','appname').match(ub_appname)
+    filter: C.Lookup('unifi_suppress.csv','appname').match(ub_appname)
     disabled: null
     conf:
       allow: 1
@@ -58,15 +58,15 @@ functions:
         - name: source
           value: "'syslog'"
         - name: sourcetype
-          value: "`syslog:ubiquiti:${ub_appname || 'undefined'}`"
+          value: "`syslog:unifi:${ub_appname || 'undefined'}`"
         - name: host
           value: "host.match(/^\\d+\\./) ?
-            C.Lookup('ubiquiti_hosts.csv','ip').match(host,'host') : host"
+            C.Lookup('unifi_hosts.csv','ip').match(host,'host') : host"
       remove:
         - facility*
         - severity*
     description: Set source/-type, and host if it's an IP and it's in the
-      ubiquiti_hosts lookup file; drop the severity and facility fields
+      unifi_hosts lookup file; drop the severity and facility fields
   - id: comment
     filter: "true"
     disabled: null
@@ -83,7 +83,7 @@ functions:
         - eventField: ub_appname
           lookupField: appname
       ignoreCase: false
-      file: ubiquiti_matches.csv
+      file: unifi_matches.csv
       outFields:
         - lookupField: match
           eventField: __match
@@ -123,6 +123,8 @@ functions:
       type: kvp
       srcField: __group.msg_kv
       cleanFields: false
+      allowedKeyChars: []
+      allowedValueChars: []
       dstField: _raw
       keep:
         - "*"

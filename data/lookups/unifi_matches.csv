@@ -1,0 +1,10 @@
+appname,match,comment
+stahtd,stahtd_dump_event..:\s(?<msg_json>.*\}),
+kernel,kernel: .[0-9.]*. ((?<component>[^:>]+):\s?(?<msg>.*)|(?<msg2>.*)),
+mca-ctrl,mca-ctrl\.(?<func>[-a-zA-Z0-9_]+)[^:]*: (?<msg>.*),
+hostapd,hostapd:\s(?<msg>.*),
+linkcheck,"linkcheck.run_speedtest..: Completed:\s+Downlink (?<down>[0-9.]+) (?<down_units>\w+), uplink (?<up>[0-9.]+) (?<up_units>\w+)",
+libubnt,(?:libubnt.*wireless_agg_stats.*anomalies..:\s(?<msg_kv>.*))|(?:libubnt\S+\s(?<msg>.*)),
+mcad,wireless_agg_stats.*anomalies..:\s(?<msg_kv>.*),
+dpi-flow-stats,(?:dpi-flow-stats:.*(?<msg_json>\{.*\}))|(?:dpi-flow-stats:?\s(?<msg>.*)),
+dnsmasq-dhcp,\]:\s(?<dhcp_type>[A-Z]+)\S*\s(?:(?<client_ip>[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s)?(?<client_mac>[a-f0-9:]+)\s?(?<client_id>.*),

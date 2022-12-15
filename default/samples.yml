@@ -1,29 +1,21 @@
 BZXGzm:
-  sampleName: ubiquiti-stahtd.log
+  sampleName: unifi-stahtd.log
   created: 1634221894251
   size: 4067
   numEvents: 5
-  modified: 1634221894258.448
+  modified: 1635182497283.4392
+  isPackOnly: true
 5AquTs:
-  sampleName: ubiquiti-mcad.log
+  sampleName: unifi-mcad.log
   created: 1634242500536
   size: 505
   numEvents: 1
-  modified: 1634242500543.3057
+  modified: 1635182497273.4392
+  isPackOnly: true
 OmiByk:
-  sampleName: ubiquiti-other.log
+  sampleName: unifi-other.log
   created: 1634243256693
   size: 73149
   numEvents: 100
-  modified: 1634243256707.6707
-sviW2K:
-  sampleName: newcap.log
-  created: 1635871485177
-  size: 18457
-  numEvents: 20
-NCKKuR:
-  sampleName: capture_20211102-095337.log
-  ttl: 24
-  created: 1635872029366
-  size: 4276
-  numEvents: 5
+  modified: 1635182497283.4392
+  isPackOnly: true

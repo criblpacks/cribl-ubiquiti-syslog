@@ -1,1 +1,1 @@
-{"name":"cribl-ubiquiti-syslog","version":"0.5.1","author":"Jon Rust - Cribl","description":"Clean up and extracts for Ubiquiti syslog data","displayName":"Ubiquiti Syslog"}
+{"name":"cribl-ubiquiti-syslog","version":"0.5.1","minLogStreamVersion":"4.0.0","author":"Jon Rust - Cribl","description":"Clean up and extracts for Ubiquiti Unifi syslog data","displayName":"Ubiquiti Unifi","tags":{"streamtags":[],"dataType":["logs"],"useCase":["reduction","filtering","enrichment"]}}
