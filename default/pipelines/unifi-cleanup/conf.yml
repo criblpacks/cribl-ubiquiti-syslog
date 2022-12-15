@@ -1,15 +1,31 @@
 output: default
 groups:
   YptLOm:
-    name: Extract fields based on pre-defined regex found in ubiquiti_matches lookup
+    name: Extract fields based on pre-defined regex found in unifi_matches lookup
       file
-    index: 7
+    index: 13
   hsgCbr:
     name: Re-build _raw based on what type of log we have
-    index: 8
+    index: 14
     description: Note the final flags. We stop processing after we match one of these rules
 asyncFuncTimeout: 1000
 functions:
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Move message to _raw if it's there, drop message; set _punct
+  - id: eval
+    filter: message
+    disabled: null
+    conf:
+      add:
+        - name: punct
+          value: message.replace(/[0-9a-zA-Z\s]+/g,'')
+        - name: _raw
+          value: message
+        - name: message
+          value: undefined
   - id: comment
     filter: "true"
     disabled: null
@@ -23,8 +39,35 @@ functions:
       iterations: 100
       overwrite: false
       regex: /(?<ub_mac>[a-f0-9]+),(?<ub_version>\S+):?\s(?::\s)?(?<ub_appname>[-a-zA-Z0-9_/]+)/
-    description: This should be done in the pre-processing pipeline, but we'll catch
-      it here if not
+  - id: eval
+    filter: "!ub_mac"
+    disabled: null
+    conf:
+      add:
+        - name: ub_group_type
+          value: "'failed extract'"
+    description: event was not what we expected
+    final: true
+  - id: comment
+    filter: "true"
+    disabled: null
+    conf:
+      comment: Fix time if needed
+  - id: eval
+    filter: "true"
+    disabled: false
+    conf:
+      add:
+        - name: __time_adj_sec
+          value: Number(Date.now())/1000 - _time
+        - name: time_adj_hr
+          value: Math.round(__time_adj_sec/3600)
+        - name: _time
+          value: "Math.abs(__time_adj_sec) < 3500 ? _time : _time + (time_adj_hr  * 3600)"
+        - name: time_adj_hr
+          value: "time_adj_hr == 0 ? undefined : time_adj_hr"
+    description: get time diff in seconds, get time diff in whole hour, set time if
+      absolute(seconds) diff is greater than 3500
   - id: comment
     filter: "true"
     disabled: null
@@ -113,6 +156,20 @@ functions:
       add:
         - name: _raw
           value: JSON.parse(__group.msg_json)
+        - name: ub_group_type
+          value: "'json'"
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
     final: true
     groupId: hsgCbr
   - id: serde
@@ -123,13 +180,32 @@ functions:
       type: kvp
       srcField: __group.msg_kv
       cleanFields: false
-      allowedKeyChars: []
-      allowedValueChars: []
       dstField: _raw
-      keep:
-        - "*"
-    final: true
+      keep: []
+      remove: []
+    final: false
     groupId: hsgCbr
+  - id: eval
+    filter: __group.msg_kv
+    disabled: null
+    conf:
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
+      add:
+        - name: ub_group_type
+          value: "'kv'"
+    groupId: hsgCbr
+    final: true
   - id: eval
     filter: __group.msg || __group.msg2
     disabled: null
@@ -137,6 +213,20 @@ functions:
       add:
         - name: _raw
           value: __group.msg || __group.msg2
+        - name: ub_group_type
+          value: "'msg'"
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
     final: true
     groupId: hsgCbr
   - id: eval
@@ -146,6 +236,20 @@ functions:
       add:
         - name: _raw
           value: __group
+        - name: ub_group_type
+          value: "'match'"
+      keep:
+        - _*
+        - host
+        - source
+        - sourcetype
+        - index
+        - time_adj_hr
+        - ub_version
+        - ub_group_type
+        - punct
+      remove:
+        - "*"
     groupId: hsgCbr
     final: true
   - id: comment
@@ -161,5 +265,7 @@ functions:
       add:
         - name: _raw
           value: _raw.replace(/^[a-f0-9]{12},\S+:\s/,'')
+        - name: ub_group_type
+          value: "'nil'"
     groupId: hsgCbr
     description: Last resort, just clean it up and pass it along

@@ -8,8 +8,5 @@ routes:
     pipeline: unifi-cleanup
     description: ""
     clones: []
-    enableOutputExpression: false
-    outputExpression: null
     filter: "true"
     output: default
-comments: []

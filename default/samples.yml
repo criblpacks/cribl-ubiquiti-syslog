@@ -3,19 +3,21 @@ BZXGzm:
   created: 1634221894251
   size: 4067
   numEvents: 5
-  modified: 1635182497283.4392
-  isPackOnly: true
+  modified: 1634221894258.448
 5AquTs:
   sampleName: unifi-mcad.log
   created: 1634242500536
   size: 505
   numEvents: 1
-  modified: 1635182497273.4392
-  isPackOnly: true
+  modified: 1634242500543.3057
 OmiByk:
   sampleName: unifi-other.log
   created: 1634243256693
   size: 73149
   numEvents: 100
-  modified: 1635182497283.4392
-  isPackOnly: true
+  modified: 1634243256707.6707
+sviW2K:
+  sampleName: newcap.log
+  created: 1635871485177
+  size: 18457
+  numEvents: 20
